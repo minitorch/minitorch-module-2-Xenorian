@@ -3,26 +3,35 @@ from typing import Any, Iterable, List, Tuple
 
 from typing_extensions import Protocol
 
+from collections import deque
+
 # ## Task 1.1
 # Central Difference calculation
 
 
 def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) -> Any:
-    r"""
-    Computes an approximation to the derivative of `f` with respect to one arg.
+    # r"""
+    # Computes an approximation to the derivative of `f` with respect to one arg.
 
-    See :doc:`derivative` or https://en.wikipedia.org/wiki/Finite_difference for more details.
+    # See :doc:`derivative` or https://en.wikipedia.org/wiki/Finite_difference for more details.
 
-    Args:
-        f : arbitrary function from n-scalar args to one value
-        *vals : n-float values $x_0 \ldots x_{n-1}$
-        arg : the number $i$ of the arg to compute the derivative
-        epsilon : a small constant
+    # Args:
+    #     f : arbitrary function from n-scalar args to one value
+    #     *vals : n-float values $x_0 \ldots x_{n-1}$
+    #     arg : the number $i$ of the arg to compute the derivative
+    #     epsilon : a small constant
 
-    Returns:
-        An approximation of $f'_i(x_0, \ldots, x_{n-1})$
-    """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # Returns:
+    #     An approximation of $f'_i(x_0, \ldots, x_{n-1})$
+    # """
+    x = list(vals)
+
+    x[arg] += epsilon
+    f1 = f(*x)
+    x[arg] -= 2 * epsilon
+    f2 = f(*x)
+    
+    return (f1 - f2) / (2 * epsilon)
 
 
 variable_count = 1
@@ -60,7 +69,34 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    input_radius = dict()
+    input_radius[variable.unique_id] = 0
+
+    ready_to_visit : deque[Variable] = deque()
+    ready_to_visit.append(variable)
+    while len(ready_to_visit) > 0:
+        node = ready_to_visit.pop()
+        for p in node.parents:
+            if input_radius.get(p.unique_id) == None:
+                ready_to_visit.append(p)
+                input_radius[p.unique_id] = 1
+            else:
+                input_radius[p.unique_id] += 1
+    
+    ready_to_visit.clear()
+    ready_to_visit.append(variable)
+    results = []
+
+    while len(ready_to_visit) > 0:
+        node = ready_to_visit.pop()
+        for p in node.parents:
+            input_radius[p.unique_id] -= 1
+            if input_radius[p.unique_id] == 0:
+                ready_to_visit.append(p)
+        results.append(node)
+
+    return results
+
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -74,7 +110,23 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    topo_order = topological_sort(variable)
+    input_d_dict = dict()
+
+    input_d_dict[variable.unique_id] = deriv
+
+    for node in topo_order:
+        if node.is_leaf():
+            node.accumulate_derivative(input_d_dict[node.unique_id])
+        else:
+            input_d = input_d_dict[node.unique_id]
+            v_and_d_list = node.chain_rule(input_d)
+
+            v_list = [v for v,d in v_and_d_list]
+            d_list = [d for v,d in v_and_d_list]
+
+            for p,d in zip(node.parents,d_list):
+                input_d_dict[p.unique_id] = input_d_dict.get(p.unique_id,0) + d
 
 
 @dataclass
