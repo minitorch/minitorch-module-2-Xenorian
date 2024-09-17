@@ -76,6 +76,9 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     ready_to_visit.append(variable)
     while len(ready_to_visit) > 0:
         node = ready_to_visit.pop()
+        if node.is_constant():
+            continue
+
         for p in node.parents:
             if input_radius.get(p.unique_id) == None:
                 ready_to_visit.append(p)
@@ -89,6 +92,9 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
 
     while len(ready_to_visit) > 0:
         node = ready_to_visit.pop()
+        if node.is_constant():
+            continue
+
         for p in node.parents:
             input_radius[p.unique_id] -= 1
             if input_radius[p.unique_id] == 0:
